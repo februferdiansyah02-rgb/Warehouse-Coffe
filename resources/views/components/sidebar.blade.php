@@ -84,45 +84,55 @@
                 <span>Laporan</span>
             </a>
 
-            <!-- 9. Pengguna -->
-            <a href="{{ route('pengguna.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-medium transition {{ request()->routeIs('pengguna.index') ? 'bg-[#231F1B] text-white border border-[#3A322B] shadow-inner' : 'text-stone-400 hover:bg-[#1A1714] hover:text-white' }}">
+            <!-- 9. Profil Gudang -->
+            <a href="{{ route('warehouse.edit') }}" class="flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-medium transition {{ request()->routeIs('warehouse.*') ? 'bg-[#231F1B] text-white border border-[#3A322B] shadow-inner' : 'text-stone-400 hover:bg-[#1A1714] hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
-                <span>Pengguna</span>
+                <span>Profil Gudang</span>
             </a>
+
         </div>
     </div>
 
     <!-- Bottom Section: Active Warehouse Card & Admin Profile -->
     <div class="space-y-4 pt-4 border-t border-[#26211C]">
         <!-- Card Gudang Aktif -->
-        <div class="bg-[#1A1714] p-3.5 rounded-2xl border border-[#26211C] flex items-center justify-between cursor-pointer hover:border-[#3A322B] transition">
+        <a href="{{ route('warehouse.edit') }}" class="block bg-[#1A1714] p-3.5 rounded-2xl border border-[#26211C] flex items-center justify-between cursor-pointer hover:border-[#3A322B] transition">
+            @php $wp = \App\Models\WarehouseProfile::first(); @endphp
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-[#26211C] text-[#D99B52] border border-[#3A322B] rounded-xl flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                    </svg>
-                </div>
+                @if ($wp && $wp->logo)
+                    <img src="{{ asset('storage/' . $wp->logo) }}" alt="Logo" class="w-10 h-10 object-contain rounded-xl border border-[#3A322B] bg-[#26211C]">
+                @else
+                    <div class="w-10 h-10 bg-[#26211C] text-[#D99B52] border border-[#3A322B] rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </div>
+                @endif
                 <div>
                     <span class="text-[10px] text-stone-500 font-medium block leading-none mb-1">Gudang Aktif</span>
-                    <h4 class="text-xs font-bold text-white">Gudang Utama</h4>
-                    <span class="text-[10px] text-stone-500 block">Jakarta Selatan</span>
+                    <h4 class="text-xs font-bold text-white">{{ $wp->name ?? 'Gudang Utama' }}</h4>
+                    <span class="text-[10px] text-stone-500 block">{{ $wp->address ?? 'Jakarta Selatan' }}</span>
                 </div>
             </div>
             <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-        </div>
+        </a>
 
         <!-- User Profile Dropdown / Logout -->
         <div x-data="{ open: false }" class="relative">
             <button @click="open = !open" @click.outside="open = false" 
                     class="w-full flex items-center justify-between p-1.5 rounded-2xl hover:bg-[#1A1714] transition focus:outline-none">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-[#D99B52] text-[#12100E] font-bold rounded-full flex items-center justify-center text-sm">
-                        {{ strtoupper(substr(Auth::user()->name ?? 'AR', 0, 2)) }}
-                    </div>
+                    <div class="w-10 h-10 bg-[#D99B52] text-[#12100E] font-bold rounded-full flex items-center justify-center text-sm overflow-hidden">
+                        @if (Auth::user()->photo)
+                            <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="Foto" class="w-full h-full object-cover">
+                        @else
+                            {{ strtoupper(substr(Auth::user()->name ?? 'AR', 0, 2)) }}
+                        @endif
+                    </div>>
                     <div class="text-left">
                         <h4 class="text-xs font-bold text-white leading-tight">{{ Auth::user()->name ?? 'Andi Rahman' }}</h4>
                         <span class="text-[10px] text-stone-500">Administrator</span>

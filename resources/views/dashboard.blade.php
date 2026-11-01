@@ -80,7 +80,7 @@
                         <span>Stok Gudang</span>
                     </div>
                     <span class="bg-[#C85A4B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
-                        {{ $items->filter(fn($i) => $i->stock_kg < 10)->count() }}
+                        {{ $lowStockItems->count() }}
                     </span>
                 </a>
 
@@ -91,26 +91,25 @@
                     <span>Laporan</span>
                 </a>
 
-                <a href="{{ route('pengguna.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-medium text-stone-400 hover:bg-[#1A1714] hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    <span>Pengguna</span>
-                </a>
             </div>
         </div>
 
         <!-- Footer Sidebar -->
         <div class="space-y-4 pt-4 border-t border-[#26211C]">
             <div class="bg-[#1A1714] p-3.5 rounded-2xl border border-[#26211C] flex items-center justify-between">
+                @php $wp = \App\Models\WarehouseProfile::first(); @endphp
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-[#26211C] text-[#D99B52] border border-[#3A322B] rounded-xl flex items-center justify-center">
-                        <i data-lucide="warehouse" class="w-5 h-5"></i>
-                    </div>
+                    @if ($wp && $wp->logo)
+                        <img src="{{ asset('storage/' . $wp->logo) }}" alt="Logo" class="w-10 h-10 object-contain rounded-xl border border-[#3A322B] bg-[#26211C]">
+                    @else
+                        <div class="w-10 h-10 bg-[#26211C] text-[#D99B52] border border-[#3A322B] rounded-xl flex items-center justify-center">
+                            <i data-lucide="warehouse" class="w-5 h-5"></i>
+                        </div>
+                    @endif
                     <div>
                         <span class="text-[10px] text-stone-500 font-medium block leading-none mb-1">Gudang Aktif</span>
-                        <h4 class="text-xs font-bold text-white">Gudang Utama</h4>
-                        <span class="text-[10px] text-stone-500 block">Jakarta Selatan</span>
+                        <h4 class="text-xs font-bold text-white">{{ $wp->name ?? 'Gudang Utama' }}</h4>
+                        <span class="text-[10px] text-stone-500 block">{{ $wp->address ?? 'Jakarta Selatan' }}</span>
                     </div>
                 </div>
             </div>
@@ -118,9 +117,13 @@
             <div x-data="{ open: false }" class="relative">
                 <button @click="open = !open" @click.outside="open = false" class="w-full flex items-center justify-between p-1.5 rounded-2xl hover:bg-[#1A1714] transition">
                     <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-[#D99B52] text-[#12100E] font-bold rounded-full flex items-center justify-center text-sm">
-                            {{ strtoupper(substr(Auth::user()->name ?? 'AR', 0, 2)) }}
-                        </div>
+                        <div class="w-10 h-10 bg-[#D99B52] text-[#12100E] font-bold rounded-full flex items-center justify-center text-sm overflow-hidden">
+                            @if (Auth::user()->photo)
+                                <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="Foto" class="w-full h-full object-cover">
+                            @else
+                                {{ strtoupper(substr(Auth::user()->name ?? 'AR', 0, 2)) }}
+                            @endif
+                        </div>>
                         <div class="text-left truncate">
                             <h4 class="text-xs font-bold text-white leading-tight truncate">{{ Auth::user()->name ?? 'Andi' }}</h4>
                             <span class="text-[10px] text-stone-500 block truncate">Administrator</span>
@@ -158,8 +161,12 @@
                     <i data-lucide="bell" class="w-5 h-5"></i>
                 </button>
                 <span class="text-xs text-stone-400 font-medium">{{ \Carbon\Carbon::now()->isoFormat('D MMM YYYY') }}</span>
-                <div class="w-8 h-8 bg-[#D99B52] text-[#12100E] font-bold rounded-full flex items-center justify-center text-xs">
-                    {{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 2)) }}
+                <div class="w-8 h-8 bg-[#D99B52] text-[#12100E] font-bold rounded-full flex items-center justify-center text-xs overflow-hidden">
+                    @if (Auth::user()->photo)
+                        <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="Foto" class="w-full h-full object-cover">
+                    @else
+                        {{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 2)) }}
+                    @endif
                 </div>
             </div>
         </header>
@@ -176,6 +183,34 @@
                 <div class="bg-[#181512] border border-[#26211C] px-4 py-2 rounded-xl text-xs text-stone-300 flex items-center space-x-2">
                     <span><i data-lucide="calendar" class="w-5 h-5"></i></span>
                     <span>1–{{ date('d M Y') }}</span>
+                </div>
+            </div>
+
+            <!-- Profil Gudang -->
+            @php $wp = \App\Models\WarehouseProfile::first(); @endphp
+            <div class="bg-[#181512] border border-[#26211C] rounded-2xl p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    @if ($wp && $wp->logo)
+                        <img src="{{ asset('storage/' . $wp->logo) }}" alt="Logo" class="h-16 w-16 object-contain rounded-xl border border-[#26211C] bg-[#26211C] p-2">
+                    @else
+                        <div class="h-16 w-16 bg-[#26211C] text-[#D99B52] border border-[#3A322B] rounded-xl flex items-center justify-center">
+                            <i data-lucide="warehouse" class="w-8 h-8"></i>
+                        </div>
+                    @endif
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-bold text-white">{{ $wp->name ?? 'Gudang Utama' }}</h3>
+                        @if ($wp && $wp->company_name)
+                            <p class="text-xs text-[#D99B52] font-medium">{{ $wp->company_name }}</p>
+                        @endif
+                        <p class="text-xs text-stone-400 mt-1">{{ $wp->description ?? 'Gudang penyimpanan biji kopi' }}</p>
+                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs text-stone-300">
+                            <div><span class="text-stone-500">Alamat:</span> {{ $wp->address ?? '-' }}</div>
+                            <div><span class="text-stone-500">Telepon:</span> {{ $wp->phone ?? '-' }}</div>
+                            <div><span class="text-stone-500">Email:</span> {{ $wp->email ?? '-' }}</div>
+                            <div><span class="text-stone-500">PIC:</span> {{ $wp->pic ?? '-' }}</div>
+                        </div>
+                    </div>
+                    <a href="{{ route('warehouse.edit') }}" class="text-xs text-[#D99B52] hover:underline font-medium whitespace-nowrap">Edit profil &rarr;</a>
                 </div>
             </div>
 
@@ -208,7 +243,7 @@
                         <span class="text-[10px] bg-rose-950/60 text-rose-300 border border-rose-800/50 px-2 py-0.5 rounded-md font-medium">v Perlu aksi</span>
                     </div>
                     <span class="text-xs text-stone-400 block mb-1">Stok Menipis</span>
-                    <h3 class="text-2xl font-bold text-white">{{ $items->filter(fn($i) => $i->stock_kg < 10)->count() }} <span class="text-xs font-normal text-stone-400">jenis kopi</span></h3>
+                    <h3 class="text-2xl font-bold text-white">{{ $lowStockItems->count() }} <span class="text-xs font-normal text-stone-400">jenis kopi</span></h3>
                 </div>
 
                 <!-- Card 4 -->
@@ -218,7 +253,7 @@
                         <span class="text-[10px] bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 px-2 py-0.5 rounded-md font-medium">^ 5.7%</span>
                     </div>
                     <span class="text-xs text-stone-400 block mb-1">Stok Bersih Bulan Ini</span>
-                    <h3 class="text-2xl font-bold text-white">+284 <span class="text-xs font-normal text-stone-400">kilogram</span></h3>
+                    <h3 class="text-2xl font-bold text-white">{{ ($nettoBulanIni >= 0 ? '+' : '') . number_format($nettoBulanIni, 0, ',', '.') }} <span class="text-xs font-normal text-stone-400">kilogram</span></h3>
                 </div>
             </div>
 
@@ -280,50 +315,31 @@
                     </div>
 
                     <div class="space-y-5">
-                        <!-- Item 1 -->
+                        @forelse($lowStockItems as $item)
+                        @php
+                            $pct = $item->minimum_stock > 0 ? min(100, max(0, (float) $item->stock_kg / (float) $item->minimum_stock * 100)) : 0;
+                        @endphp
                         <div class="flex items-center space-x-4">
                             <div class="w-10 h-10 bg-[#26211C] rounded-xl flex items-center justify-center text-sm"><i data-lucide="coffee" class="w-5 h-5"></i></div>
                             <div class="flex-1">
                                 <div class="flex justify-between text-xs mb-1">
-                                    <span class="font-semibold text-white">Arabika Gayo</span>
-                                    <span class="text-rose-400 font-bold">8 kg <span class="text-stone-500 font-normal">tersisa</span></span>
+                                    <span class="font-semibold text-white">{{ $item->item_name }}</span>
+                                    <span class="text-rose-400 font-bold">{{ number_format($item->stock_kg, 2) }} kg <span class="text-stone-500 font-normal">tersisa</span></span>
                                 </div>
                                 <div class="w-full bg-[#12100E] rounded-full h-2">
-                                    <div class="bg-rose-500 h-2 rounded-full" style="width: 40%"></div>
+                                    <div class="bg-rose-500 h-2 rounded-full" style="width: {{ $pct }}%"></div>
                                 </div>
-                                <span class="text-[10px] text-stone-500">Minimum 10 kg</span>
+                                <span class="text-[10px] text-stone-500">Minimum {{ number_format($item->minimum_stock, 0, ',', '.') }} kg</span>
+                                <span class="text-[10px] text-stone-400 block mt-1">
+                                    {{ $item->category?->name ?? 'Umum' }} · {{ $item->supplier?->name ?? 'Tidak ada supplier' }}
+                                </span>
                             </div>
                         </div>
-
-                        <!-- Item 2 -->
-                        <div class="flex items-center space-x-4">
-                            <div class="w-10 h-10 bg-[#26211C] rounded-xl flex items-center justify-center text-sm"><i data-lucide="coffee" class="w-5 h-5"></i></div>
-                            <div class="flex-1">
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="font-semibold text-white">Robusta Temanggung</span>
-                                    <span class="text-rose-400 font-bold">4 kg <span class="text-stone-500 font-normal">tersisa</span></span>
-                                </div>
-                                <div class="w-full bg-[#12100E] rounded-full h-2">
-                                    <div class="bg-rose-500 h-2 rounded-full" style="width: 25%"></div>
-                                </div>
-                                <span class="text-[10px] text-stone-500">Minimum 12 kg</span>
-                            </div>
+                        @empty
+                        <div class="text-center py-4 text-xs text-stone-500">
+                            Semua stok aman, tidak ada item yang mencapai batas minimum.
                         </div>
-
-                        <!-- Item 3 -->
-                        <div class="flex items-center space-x-4">
-                            <div class="w-10 h-10 bg-[#26211C] rounded-xl flex items-center justify-center text-sm"><i data-lucide="coffee" class="w-5 h-5"></i></div>
-                            <div class="flex-1">
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="font-semibold text-white">Liberika Rangsang</span>
-                                    <span class="text-rose-400 font-bold">2 kg <span class="text-stone-500 font-normal">tersisa</span></span>
-                                </div>
-                                <div class="w-full bg-[#12100E] rounded-full h-2">
-                                    <div class="bg-rose-500 h-2 rounded-full" style="width: 15%"></div>
-                                </div>
-                                <span class="text-[10px] text-stone-500">Minimum 8 kg</span>
-                            </div>
-                        </div>
+                        @endforelse
                     </div>
                 </div>
 
@@ -338,50 +354,34 @@
                     </div>
 
                     <div class="space-y-4">
-                        <!-- Transaksi 1 -->
+                        @forelse($recentTransactions as $trx)
+                        @php
+                            $isMasuk = $trx->type === 'masuk';
+                            $icon = $isMasuk ? 'package-plus' : 'package-minus';
+                            $badge = $isMasuk ? 'bg-emerald-950/60 border border-emerald-800/50 text-emerald-400' : 'bg-rose-950/60 border border-rose-800/50 text-rose-400';
+                            $label = $isMasuk ? 'Barang Masuk' : 'Barang Keluar';
+                            $sign = $isMasuk ? '+' : '-';
+                            $color = $isMasuk ? 'text-emerald-400' : 'text-rose-400';
+                            $tanggal = \Carbon\Carbon::parse($trx->date)->format('d M, H:i');
+                        @endphp
                         <div class="flex items-center justify-between p-2 rounded-xl hover:bg-[#12100E] transition">
                             <div class="flex items-center space-x-3">
-                                <div class="w-9 h-9 bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 rounded-xl flex items-center justify-center"><i data-lucide="package-plus" class="w-5 h-5"></i></div>
+                                <div class="w-9 h-9 {{ $badge }} rounded-xl flex items-center justify-center"><i data-lucide="{{ $icon }}" class="w-5 h-5"></i></div>
                                 <div>
-                                    <h4 class="text-xs font-bold text-white">Barang Masuk</h4>
-                                    <span class="text-[10px] text-stone-500">BM-2412-089 · PT Aroma Nusantara</span>
+                                    <h4 class="text-xs font-bold text-white">{{ $label }}</h4>
+                                    <span class="text-[10px] text-stone-500">{{ $trx->code }} · {{ $trx->partner }}</span>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <span class="text-xs font-bold text-emerald-400">+120 kg</span>
-                                <span class="text-[10px] text-stone-500 block">12 Des, 10:42</span>
+                                <span class="text-xs font-bold {{ $color }}">{{ $sign }}{{ number_format($trx->kg, 0, ',', '.') }} kg</span>
+                                <span class="text-[10px] text-stone-500 block">{{ $tanggal }}</span>
                             </div>
                         </div>
-
-                        <!-- Transaksi 2 -->
-                        <div class="flex items-center justify-between p-2 rounded-xl hover:bg-[#12100E] transition">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-9 h-9 bg-rose-950/60 border border-rose-800/50 text-rose-400 rounded-xl flex items-center justify-center"><i data-lucide="package-minus" class="w-5 h-5"></i></div>
-                                <div>
-                                    <h4 class="text-xs font-bold text-white">Barang Keluar</h4>
-                                    <span class="text-[10px] text-stone-500">BK-2412-046 · Roastery Jakarta</span>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-xs font-bold text-rose-400">-45 kg</span>
-                                <span class="text-[10px] text-stone-500 block">12 Des, 09:18</span>
-                            </div>
+                        @empty
+                        <div class="text-center py-4 text-xs text-stone-500">
+                            Belum ada transaksi terbaru.
                         </div>
-
-                        <!-- Transaksi 3 -->
-                        <div class="flex items-center justify-between p-2 rounded-xl hover:bg-[#12100E] transition">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-9 h-9 bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 rounded-xl flex items-center justify-center"><i data-lucide="package-plus" class="w-5 h-5"></i></div>
-                                <div>
-                                    <h4 class="text-xs font-bold text-white">Barang Masuk</h4>
-                                    <span class="text-[10px] text-stone-500">BM-2412-088 · Koperasi Gayo</span>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-xs font-bold text-emerald-400">+80 kg</span>
-                                <span class="text-[10px] text-stone-500 block">11 Des, 15:30</span>
-                            </div>
-                        </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
