@@ -1,0 +1,352 @@
+# KOPI.ONE — Sistem Manajemen Inventaris Gudang Kopi
+
+> Aplikasi web untuk mengelola inventaris gudang kopi: data kopi, kategori, supplier, transaksi barang masuk/keluar, stok, dan laporan.
+
+**Versi:** 1.1 (PRD v1.1) · **Tanggal:** 29 Oktober 2026 · **Stack:** Laravel 11 (PHP 8.3) • MySQL/MariaDB • Tailwind CSS • Vite • Alpine.js
+
+---
+
+## Daftar Isi
+
+1. [Ringkasan Produk](#1-ringkasan-produk)
+2. [Latar Belakang & Masalah](#2-latar-belakang--masalah)
+3. [Tujuan Produk](#3-tujuan-produk)
+4. [Pengguna & Hak Akses](#4-pengguna--hak-akses)
+5. [Cakupan Fitur](#5-cakupan-fitur)
+6. [Alur Operasional Utama](#6-alur-operasional-utama)
+7. [Aturan Bisnis](#7-aturan-bisnis)
+8. [Struktur Data Awal](#8-struktur-data-awal)
+9. [Kebutuhan Nonfungsional](#9-kebutuhan-nonfungsional)
+10. [Rancangan UI/UX](#10-rancangan-uiux)
+11. [Kriteria Penerimaan MVP](#11-kriteria-penerimaan-mvp)
+12. [Tahapan Implementasi](#12-tahapan-implementasi)
+13. [Asumsi & Keputusan](#13-asumsi--keputusan)
+14. [Analisis Stok Bulanan](#14-analisis-stok-bulanan)
+15. [Struktur Folder Proyek](#15-struktur-folder-proyek)
+16. [Instalasi & Menjalankan](#16-instalasi--menjalankan)
+17. [Akun Login Default](#17-akun-login-default)
+
+---
+
+## 1. Ringkasan Produk
+
+KOPI.ONE adalah aplikasi web untuk mengelola inventaris gudang kopi. Sistem membantu admin dan petugas gudang mencatat data kopi, kategori, supplier, penerimaan dan pengeluaran barang, memantau stok, serta menghasilkan laporan inventaris yang dapat ditelusuri.
+
+## 2. Latar Belakang & Masalah
+
+- Pencatatan stok manual berisiko menimbulkan selisih data, duplikasi, dan kesalahan hitung.
+- Informasi jumlah stok dan pergerakan barang tidak selalu dapat diketahui dengan cepat.
+- Riwayat barang masuk dan keluar sulit ditelusuri jika pencatatan tersebar.
+- Pengelola membutuhkan peringatan stok minimum dan laporan untuk mendukung keputusan operasional.
+
+## 3. Tujuan Produk
+
+- Memusatkan data inventaris kopi dalam satu sistem.
+- Mencatat transaksi barang masuk dan keluar dengan jejak transaksi.
+- Menampilkan stok terkini dan peringatan ketika stok mencapai batas minimum.
+- Menyediakan laporan berdasarkan periode, produk, kategori, dan jenis transaksi.
+- Membatasi akses berdasarkan peran pengguna.
+
+## 4. Pengguna & Hak Akses
+
+| Peran | Hak Akses Utama |
+|-------|-----------------|
+| **Admin** | Mengelola pengguna, data kopi, kategori, supplier, transaksi, laporan, dan pengaturan. |
+| **Petugas Gudang** | Melihat data kopi dan supplier; mencatat barang masuk/keluar; melihat stok dan laporan operasional. |
+| **Manajer (opsional)** | Melihat dashboard dan laporan tanpa mengubah transaksi. |
+
+## 5. Cakupan Fitur
+
+### 5.1 Fitur MVP (rilis pertama)
+
+| ID | Fitur | Kebutuhan / Perilaku Sistem |
+|----|-------|------------------------------|
+| F-01 | Autentikasi | Login/logout; password disimpan sebagai hash; halaman internal memerlukan login. |
+| F-02 | Dashboard | Total jenis kopi, total stok, stok menipis, barang masuk/keluar periode ini, transaksi terbaru. |
+| F-03 | Data kopi | CRUD produk: SKU, nama, kategori, varietas, proses, asal, satuan, stok minimum, status aktif. |
+| F-04 | Kategori | CRUD kategori seperti Arabika, Robusta, dan Liberika. |
+| F-05 | Supplier | CRUD supplier: nama, kontak, telepon/email, alamat, status. |
+| F-06 | Barang masuk | Nomor transaksi, tanggal, supplier, item, kuantitas, harga beli opsional, catatan. |
+| F-07 | Barang keluar | Nomor transaksi, tanggal, tujuan/penerima, item, kuantitas, alasan. |
+| F-08 | Kontrol stok | Stok bertambah saat barang masuk dikonfirmasi dan berkurang saat barang keluar dikonfirmasi; stok negatif ditolak. |
+| F-09 | Riwayat stok | Catat tipe transaksi, referensi, waktu, kuantitas, saldo setelah transaksi, dan pengguna. |
+| F-10 | Pencarian/filter | Cari produk berdasarkan nama/kode; filter kategori, status, tanggal, dan supplier. |
+| F-11 | Laporan | Laporan stok, barang masuk/keluar, dan kartu stok per produk berdasarkan periode. |
+| F-12 | Validasi | Validasi server, pesan sukses/gagal, konfirmasi tindakan penting, penanganan data kosong. |
+
+### 5.2 Fitur Lanjutan (di luar MVP)
+
+- Pencatatan lot/batch, tanggal sangrai, tanggal kedaluwarsa, dan FIFO.
+- Stock opname dan penyesuaian stok dengan alasan serta persetujuan.
+- Ekspor PDF/Excel dan cetak dokumen penerimaan/pengeluaran.
+- Barcode/QR code, notifikasi email, dan multi-gudang.
+- Audit log lengkap dan persetujuan transaksi bertingkat.
+
+## 6. Alur Operasional Utama
+
+### 6.1 Barang Masuk
+
+1. Petugas membuka menu **Barang Masuk** dan memilih supplier serta tanggal.
+2. Petugas menambahkan satu atau lebih produk kopi dan kuantitas.
+3. Sistem memvalidasi kuantitas positif dan menyimpan transaksi.
+4. Saat transaksi dikonfirmasi, sistem menambah stok dan mencatat *stock movement* dalam satu transaksi database.
+5. Sistem menampilkan nomor transaksi dan stok terbaru.
+
+### 6.2 Barang Keluar
+
+1. Petugas memilih produk, kuantitas, tanggal, dan tujuan/alasan pengeluaran.
+2. Sistem memastikan stok tersedia mencukupi.
+3. Saat dikonfirmasi, sistem mengurangi stok dan mencatat pergerakan stok dalam satu transaksi database.
+4. Jika stok tidak cukup, transaksi ditolak dan stok tidak berubah.
+
+## 7. Aturan Bisnis
+
+- SKU produk harus unik; kuantitas transaksi harus angka positif.
+- Stok tidak boleh kurang dari nol.
+- Perubahan stok hanya melalui transaksi masuk/keluar atau penyesuaian dengan alasan dan jejak audit.
+- Pembaruan stok dan riwayat harus berhasil atau gagal bersama-sama (atomic transaction).
+- Transaksi terkonfirmasi tidak dihapus langsung; koreksi dilakukan melalui pembatalan/retur tercatat.
+- Stok menipis jika stok tersedia kurang dari atau sama dengan batas minimum produk.
+- Laporan mengikuti filter periode yang dipilih.
+- Satuan ditentukan per produk (kg, gram, karung, pack); konversi otomatis di luar MVP.
+
+## 8. Struktur Data Awal
+
+| Tabel | Kolom Penting (rancangan) |
+|-------|---------------------------|
+| `users` | id, name, email (unik), password_hash, role, is_active, created_at, updated_at |
+| `categories` | id, name (unik), description, created_at, updated_at |
+| `coffees` | id, sku (unik), name, category_id, variety, process_method, origin, unit, current_stock, min_stock, is_active |
+| `suppliers` | id, name, contact_person, phone, email, address, is_active |
+| `stock_ins` | id, transaction_no (unik), supplier_id, transaction_date, status, notes, created_by |
+| `stock_in_items` | id, stock_in_id, coffee_id, quantity, unit_cost (opsional) |
+| `stock_outs` | id, transaction_no (unik), transaction_date, destination, reason, status, notes, created_by |
+| `stock_out_items` | id, stock_out_id, coffee_id, quantity |
+| `stock_movements` | id, coffee_id, movement_type, quantity, reference_type, reference_id, balance_after, created_by, created_at |
+
+> Catatan: skema final dapat dikembangkan untuk batch/lot, retur, penyesuaian, dan multi-gudang.
+
+## 9. Kebutuhan Nonfungsional
+
+| Aspek | Persyaratan |
+|-------|-------------|
+| **Keamanan** | `password_hash`/`password_verify`, prepared statements, validasi server, proteksi CSRF, escaping output, session aman. |
+| **Konsistensi** | Transaksi database untuk pembaruan stok; cegah race condition saat stok keluar. |
+| **Kegunaan** | Antarmuka responsif, navigasi jelas, status stok terlihat, pesan kesalahan spesifik. |
+| **Kinerja** | Pagination dan indeks pada SKU, tanggal transaksi, foreign key, serta kolom pencarian. |
+| **Kompatibilitas** | Berjalan di XAMPP dengan PHP dan MySQL/MariaDB yang kompatibel. |
+| **Pemeliharaan** | Pisahkan controller, model, view, konfigurasi database, routing, dan aset CSS/JS. |
+
+## 10. Rancangan UI/UX
+
+- Tema visual: hijau tua, cokelat kopi, dan krem dengan kontras teks jelas.
+- Sidebar: Dashboard, Data Kopi, Kategori, Supplier, Barang Masuk, Barang Keluar, Stok Gudang, Laporan, Pengguna.
+- Dashboard: kartu KPI, grafik pergerakan stok, daftar stok menipis, transaksi terakhir.
+- Tabel: pencarian, filter, pagination, badge status, dan aksi konsisten.
+- Form transaksi: validasi inline, pemilihan produk, kuantitas, dan konfirmasi.
+- Responsif untuk desktop, tablet, dan layar kecil.
+
+## 11. Kriteria Penerimaan MVP
+
+- Pengguna belum login tidak dapat membuka halaman internal.
+- Admin dapat menambah, mengubah, mencari, dan menonaktifkan data kopi serta supplier.
+- Transaksi barang masuk terkonfirmasi menaikkan stok dengan benar.
+- Transaksi barang keluar terkonfirmasi menurunkan stok dengan benar.
+- Pengeluaran melebihi stok ditolak tanpa mengubah stok.
+- Setiap perubahan stok tercatat di riwayat pergerakan.
+- Dashboard dan laporan konsisten dengan transaksi tersimpan.
+- Peringatan stok minimum tampil untuk produk yang mencapai batasnya.
+- Halaman inti dapat digunakan di desktop dan layar kecil.
+
+## 12. Tahapan Implementasi
+
+| Tahap | Hasil yang Diharapkan |
+|-------|------------------------|
+| 1. Fondasi | Konfigurasi database, routing MVC, layout, autentikasi dan otorisasi. |
+| 2. Data master | CRUD kategori, kopi, supplier, validasi dan pencarian. |
+| 3. Inventaris | Transaksi masuk/keluar, aturan stok, transaksi database, riwayat stok. |
+| 4. Dashboard & laporan | KPI, stok menipis, filter tanggal, laporan stok dan kartu stok. |
+| 5. Pengujian | Uji hak akses, validasi, stok negatif, transaksi gagal, dan responsivitas. |
+| 6. Penyempurnaan | Ekspor, stock opname, batch/lot, barcode atau multi-gudang sesuai prioritas. |
+
+## 13. Asumsi & Keputusan
+
+- Rilis awal mengelola satu gudang.
+- Stok dicatat menggunakan satuan yang dipilih per produk.
+- Harga beli bersifat opsional dan belum menjadi modul akuntansi.
+- Batch/lot dan tanggal kedaluwarsa belum termasuk MVP.
+- Peran awal Admin dan Petugas Gudang; Manajer bersifat opsional.
+
+## 14. Analisis Stok Bulanan
+
+Fitur ini menampilkan perubahan stok gudang dari bulan ke bulan agar admin dapat melihat apakah persediaan meningkat atau menurun, membandingkan pergerakan barang, dan mengenali pola kebutuhan stok. Angka peningkatan dihitung dari data transaksi dan saldo stok, bukan dibuat secara otomatis.
+
+### 14.1 Informasi yang Ditampilkan
+
+- Grafik stok akhir setiap bulan untuk melihat tren persediaan.
+- Total barang masuk per bulan dan total barang keluar per bulan.
+- Perubahan bersih stok bulanan: barang masuk dikurangi barang keluar, dengan memperhitungkan penyesuaian stok yang sah.
+- Perbandingan dengan bulan sebelumnya dalam jumlah unit/satuan dan persentase.
+- Filter berdasarkan jenis kopi/kategori dan rentang bulan.
+- Ringkasan bulan berjalan serta indikator tren naik, turun, atau tetap.
+
+### 14.2 Rumus Perhitungan
+
+- Perubahan bersih stok bulanan = total barang masuk − total barang keluar ± penyesuaian stok yang tercatat.
+- Perubahan stok dibanding bulan sebelumnya = stok akhir bulan ini − stok akhir bulan sebelumnya.
+- Persentase perubahan = ((stok akhir bulan ini − stok akhir bulan sebelumnya) / stok akhir bulan sebelumnya) × 100%.
+- Jika stok akhir bulan sebelumnya adalah 0, persentase tidak dihitung untuk menghindari pembagian dengan nol; antarmuka menampilkan "Tidak dapat dihitung" dan tetap menampilkan perubahan dalam jumlah unit.
+
+### 14.3 Aturan Bisnis
+
+- Stok akhir bulanan dihitung berdasarkan saldo setelah seluruh transaksi yang valid sampai akhir bulan tersebut.
+- Transaksi yang dibatalkan tidak boleh dihitung sebagai pergerakan stok aktif.
+- Barang masuk dan keluar harus menggunakan satuan yang konsisten untuk produk yang sama.
+- Perubahan stok historis harus berasal dari transaksi dan penyesuaian yang tercatat; sistem tidak boleh mengarang data bulan sebelumnya.
+- Grafik dan angka ringkasan harus mengikuti filter produk, kategori, dan periode yang dipilih.
+- Jika data bulan sebelumnya tidak tersedia, tampilkan status "Data pembanding belum tersedia" daripada menampilkan kenaikan palsu.
+
+### 14.4 Kriteria Penerimaan
+
+- Pengguna dapat melihat grafik stok akhir per bulan.
+- Pengguna dapat membandingkan stok bulan ini dengan bulan sebelumnya dalam jumlah dan persentase.
+- Ringkasan menampilkan total barang masuk, barang keluar, dan perubahan bersih untuk setiap bulan.
+- Mengubah filter produk atau kategori memperbarui grafik dan angka secara konsisten.
+- Bulan tanpa transaksi tetap menampilkan saldo stok yang benar jika saldo historis dapat dihitung.
+- Kondisi stok awal nol atau data pembanding yang tidak tersedia ditangani dengan pesan yang jelas.
+
+### 14.5 Tampilan Dashboard yang Disarankan
+
+| Komponen | Contoh Informasi | Tujuan |
+|----------|------------------|--------|
+| Kartu ringkasan | Stok akhir bulan ini; perubahan +/− dari bulan lalu | Melihat kondisi cepat |
+| Grafik garis/batang | Stok akhir dari 6–12 bulan terakhir | Memantau tren persediaan |
+| Grafik pergerakan | Barang masuk vs barang keluar per bulan | Memahami penyebab perubahan stok |
+| Tabel bulanan | Bulan, stok awal, masuk, keluar, penyesuaian, stok akhir, perubahan % | Membaca angka secara rinci |
+
+## 15. Struktur Folder Proyek
+
+```
+warehouse-coffee/
+├── app/
+│   ├── Console/Commands/        # Perintah artisan kustom
+│   ├── Http/
+│   │   ├── Controllers/         # Controller (Inventory, Coffee, BarangMasuk, BarangKeluar, Laporan, Profile, ...)
+│   │   │   ├── Api/             # Controller API
+│   │   │   └── Auth/            # Controller autentikasi (Breeze)
+│   │   ├── Requests/            # Form request (validasi)
+│   │   │   └── Auth/
+│   │   └── Middleware/
+│   ├── Models/                  # Model Eloquent (User, Item, Coffee, Category, Supplier, IncomingGood, OutgoingGood, ...)
+│   ├── Providers/               # Service providers
+│   └── View/Components/         # Komponen Blade (ApplicationLogo, ...)
+├── bootstrap/                   # Bootstrap aplikasi
+├── config/                      # Konfigurasi (app, database, auth, ...)
+├── database/
+│   ├── factories/               # Factory (UserFactory, ...)
+│   ├── migrations/              # Migrasi database
+│   └── seeders/                 # Seeder (DatabaseSeeder: user, kategori, supplier)
+├── public/                      # Aset publik & entry point (index.php)
+├── resources/
+│   ├── css/                     # app.css (Tailwind)
+│   ├── js/                      # app.js
+│   └── views/                   # Blade templates
+│       ├── auth/                # Login, register, reset password, dll.
+│       ├── barang-keluar/       # Transaksi barang keluar
+│       ├── barang-masuk/        # Transaksi barang masuk
+│       ├── coffee/               # Data kopi (_form, create, edit, index)
+│       ├── components/           # Komponen Blade (sidebar, modal, button, input, ...)
+│       ├── inventory/           # Stok gudang (create, index)
+│       ├── kategori/            # Kategori kopi
+│       ├── laporan/              # Laporan (index, stok, masuk, keluar, pergerakan, analisis, supplier)
+│       ├── layouts/             # Layout (app, guest, navigation)
+│       ├── profile/             # Profil pengguna
+│       └── supplier/            # Data supplier
+├── routes/
+│   ├── web.php                  # Route utama (auth, inventory, data-kopi, kategori, supplier, barang-masuk/keluar, laporan, profile)
+│   ├── auth.php                 # Route autentikasi (Breeze)
+│   ├── api.php                  # Route API
+│   └── console.php              # Perintah console
+├── storage/                     # Log, cache, session, upload
+├── tests/                       # Pengujian (Feature, Unit)
+├── vendor/                      # Dependensi Composer
+├── node_modules/                # Dependensi NPM (Tailwind, Vite, Alpine.js)
+├── artisan                      # CLI Laravel
+├── composer.json                # Dependensi PHP
+├── package.json                 # Dependensi JS
+├── tailwind.config.js           # Konfigurasi Tailwind
+├── vite.config.js               # Konfigurasi Vite
+└── README.md                    # Dokumen ini
+```
+
+## 16. Instalasi & Menjalankan
+
+### Prasyarat
+
+- PHP >= 8.3
+- Composer
+- Node.js & NPM
+- MySQL/MariaDB (XAMPP)
+- Web server XAMPP (Apache)
+
+### Langkah Instalasi
+
+```bash
+# 1. Clone / salin proyek ke folder htdocs XAMPP
+cd C:\xampp\htdocs
+git clone <repo-url> warehouse-coffee
+cd warehouse-coffee
+
+# 2. Install dependensi PHP
+composer install
+
+# 3. Install dependensi JS
+npm install
+
+# 4. Salin file environment
+cp .env.example .env
+
+# 5. Generate application key
+php artisan key:generate
+
+# 6. Atur database di .env
+# DB_DATABASE=warehouse_coffee
+# DB_USERNAME=root
+# DB_PASSWORD=
+
+# 7. Buat database 'warehouse_coffee' di MySQL/MariaDB (via phpMyAdmin atau CLI)
+
+# 8. Jalankan migrasi & seeder
+php artisan migrate --seed
+
+# 9. Build aset frontend
+npm run build
+# atau untuk development: npm run dev
+
+# 10. Jalankan server (opsional, jika tidak pakai XAMPP)
+php artisan serve
+```
+
+### Menjalankan dengan XAMPP
+
+1. Pastikan Apache dan MySQL aktif di XAMPP Control Panel.
+2. Letakkan proyek di `C:\xampp\htdocs\warehouse-coffee`.
+3. Akses aplikasi di `http://localhost/warehouse-coffee/public` (atau konfigurasi virtual host).
+4. Jika pakai `npm run dev`, jalankan di terminal terpisah agar Vite menyediakan aset.
+
+## 17. Akun Login Default
+
+Setelah menjalankan `php artisan migrate --seed`, akun default berikut tersedia:
+
+| Field | Nilai |
+|-------|-------|
+| **Nama** | Test User |
+| **Email** | `test@example.com` |
+| **Password** | `password` |
+| **Role** | (default dari factory — sesuaikan role di seeder bila perlu) |
+
+> Catatan: password default adalah `password` (dari `UserFactory`). Untuk keamanan, ubah password setelah login pertama atau sesuaikan seeder (`database/seeders/DatabaseSeeder.php`) sebelum deploy.
+
+---
+
+**Akhir Dokumen — KOPI.ONE PRD v1.1 (README)**
