@@ -3,6 +3,15 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+$sslCa = env('MYSQL_ATTR_SSL_CA');
+if ($sslCa) {
+    if (file_exists(base_path($sslCa))) {
+        $sslCa = realpath(base_path($sslCa)) ?: base_path($sslCa);
+    } elseif (file_exists($sslCa)) {
+        $sslCa = realpath($sslCa) ?: $sslCa;
+    }
+}
+
 return [
 
     /*
@@ -62,7 +71,7 @@ return [
             'engine' => null,
 
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                PDO::MYSQL_ATTR_SSL_CA => $sslCa,
             ]) : [],
         ],
         
@@ -83,7 +92,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_SSL_CA => $sslCa,
             ]) : [],
         ],
 

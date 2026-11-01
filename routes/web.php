@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BarangKeluarController;
 use App\Http\Controllers\BarangMasukController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CoffeeController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LaporanController;
@@ -91,9 +92,7 @@ Route::middleware(['auth'])->group(function () {
         'destroy' => 'data-kopi.destroy',
     ])->parameters(['data-kopi' => 'coffee']);
 
-    Route::get('/kategori', function () {
-        return view('kategori.index');
-    })->name('kategori.index');
+    Route::resource('kategori', CategoryController::class);
 
     Route::get('/supplier', function () {
         return view('supplier.index');

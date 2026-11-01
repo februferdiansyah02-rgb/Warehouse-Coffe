@@ -62,9 +62,10 @@ class BarangMasukController extends Controller
             'officer' => 'required|string|max:255',
             'note' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.coffee_id' => 'nullable|exists:coffees,id',
+            'items.*.coffee_id' => 'nullable',
             'items.*.name' => 'required|string|max:255',
-            'items.*.category_id' => 'nullable|exists:categories,id',
+            'items.*.category_id' => 'nullable',
+            'items.*.category_name' => 'nullable|string|max:255',
             'items.*.qty' => 'required|numeric|min:0.01',
             'items.*.price' => 'required|numeric|min:0',
         ]);
@@ -107,8 +108,16 @@ class BarangMasukController extends Controller
             ]);
 
             foreach ($validated['items'] as $row) {
-                $coffee = ! empty($row['coffee_id']) ? Coffee::find($row['coffee_id']) : null;
-                $categoryId = $row['category_id'] ?? ($coffee?->category_id);
+                $coffee = ! empty($row['coffee_id']) && is_numeric($row['coffee_id']) ? Coffee::find($row['coffee_id']) : null;
+
+                $categoryId = ! empty($row['category_id']) && is_numeric($row['category_id']) ? (int) $row['category_id'] : null;
+
+                if (! empty($row['category_name'])) {
+                    $category = Category::firstOrCreate(['name' => trim($row['category_name'])]);
+                    $categoryId = $category->id;
+                } elseif (! $categoryId && $coffee?->category_id) {
+                    $categoryId = $coffee->category_id;
+                }
 
                 $itemName = ! empty($row['name']) ? $row['name'] : ($coffee?->name ?? 'Item Tanpa Nama');
 
@@ -124,7 +133,11 @@ class BarangMasukController extends Controller
                 // --- Sinkronisasi ke model Coffee (data kopi) ---
                 if ($coffee) {
                     $coffee->increment('stock', (float) $row['qty']);
-                    $coffee->update(['purchase_price' => $row['price']]);
+                    $coffeeUpdate = ['purchase_price' => $row['price']];
+                    if ($categoryId && ! $coffee->category_id) {
+                        $coffeeUpdate['category_id'] = $categoryId;
+                    }
+                    $coffee->update($coffeeUpdate);
                 } elseif (! empty($row['name'])) {
                     $code = 'K'.str_pad((string) (Coffee::count() + 1), 3, '0', STR_PAD_LEFT);
                     $coffee = Coffee::create([
@@ -192,6 +205,8 @@ class BarangMasukController extends Controller
         return response()->json([
             'message' => 'Transaksi '.$created->code.' berhasil disimpan!',
             'transaction' => $transaction,
+            'coffees' => Coffee::with('category')->latest()->get(),
+            'categories' => Category::all(),
         ]);
     }
 

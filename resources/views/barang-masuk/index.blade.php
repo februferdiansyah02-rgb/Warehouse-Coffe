@@ -238,23 +238,41 @@
                                                     class="w-full bg-[#12100E] border border-[#26211C] rounded-lg p-2 text-white text-xs focus:outline-none focus:border-[#D99B52]">
                                                 <option value="">Pilih kopi (data kopi)...</option>
                                                 <template x-for="c in coffees" :key="c.id">
-                                                    <option :value="c.id" x-text="c.code + ' - ' + c.name + ' (' + ((c.category && c.category.name) ? c.category.name : '-') + ')'"></option>
+                                                    <option :value="c.id" x-text="c.code + ' - ' + c.name + ' (' + ((c.category && c.category.name) ? c.category.name : 'Tanpa Kategori') + ')'"></option>
                                                 </template>
                                                 <option value="manual">Input manual (kopi baru)</option>
                                             </select>
                                             <div x-show="row.coffee_id === 'manual' || row.coffee_id === ''" class="space-y-2">
                                                 <input type="text" x-model="row.name" :required="row.coffee_id === 'manual' || row.coffee_id === ''" placeholder="Nama kopi baru"
                                                        class="w-full bg-[#12100E] border border-[#26211C] rounded-lg p-2 text-white placeholder-stone-600 text-xs focus:outline-none focus:border-[#D99B52]">
-                                                <select x-model="row.category_id" :required="row.coffee_id === 'manual' || row.coffee_id === ''"
+                                                <select x-model="row.category_id" @change="onExistingCoffeeCategoryChange(row)" :required="row.coffee_id === 'manual' || row.coffee_id === ''"
                                                         class="w-full bg-[#12100E] border border-[#26211C] rounded-lg p-2 text-white text-xs focus:outline-none focus:border-[#D99B52]">
                                                     <option value="">Pilih kategori...</option>
                                                     <template x-for="cat in categories" :key="cat.id">
                                                         <option :value="cat.id" x-text="cat.name"></option>
                                                     </template>
+                                                    <option value="new">+ Input Kategori Baru</option>
                                                 </select>
+                                                <input x-show="row.category_id === 'new'" x-model="row.category_name" type="text" placeholder="Ketik nama kategori baru..."
+                                                       class="w-full bg-[#12100E] border border-[#26211C] rounded-lg p-2 text-white placeholder-stone-600 text-xs focus:outline-none focus:border-[#D99B52]">
                                             </div>
-                                            <div x-show="row.coffee_id !== '' && row.coffee_id !== 'manual'" class="text-[10px] text-stone-500">
-                                                Kategori: <span class="text-[#D99B52]" x-text="row.category_name || '-'"></span>
+                                            <div x-show="row.coffee_id !== '' && row.coffee_id !== 'manual'" class="space-y-1">
+                                                <div class="text-[10px] text-stone-400 flex items-center justify-between">
+                                                    <span>Kategori: <strong class="text-[#D99B52]" x-text="row.category_name || '(Belum ada kategori)'"></strong></span>
+                                                    <button type="button" @click="row.edit_category = !row.edit_category" class="text-[10px] text-stone-400 hover:text-white underline ml-2" x-text="row.edit_category ? 'Tutup' : 'Ubah'"></button>
+                                                </div>
+                                                <div x-show="row.edit_category || !row.category_id" class="space-y-1 pt-1">
+                                                    <select x-model="row.category_id" @change="onExistingCoffeeCategoryChange(row)"
+                                                            class="w-full bg-[#12100E] border border-[#26211C] rounded-lg p-2 text-white text-xs focus:outline-none focus:border-[#D99B52]">
+                                                        <option value="">Pilih kategori...</option>
+                                                        <template x-for="cat in categories" :key="cat.id">
+                                                            <option :value="cat.id" x-text="cat.name"></option>
+                                                        </template>
+                                                        <option value="new">+ Input Kategori Baru</option>
+                                                    </select>
+                                                    <input x-show="row.category_id === 'new'" x-model="row.category_name" type="text" placeholder="Ketik nama kategori baru..."
+                                                           class="w-full bg-[#12100E] border border-[#26211C] rounded-lg p-2 text-white placeholder-stone-600 text-xs focus:outline-none focus:border-[#D99B52]">
+                                                </div>
                                             </div>
                                         </td>
                                         <td class="p-2">
@@ -399,7 +417,7 @@
                             price: Number(initial.coffees[0].purchase_price || 0)
                         }
                     ] : [
-                        { coffee_id: '', name: '', category_id: '', category_name: '', qty: 1, price: 0 }
+                        { coffee_id: '', name: '', category_id: (initial.categories && initial.categories.length) ? initial.categories[0].id : '', category_name: (initial.categories && initial.categories.length) ? initial.categories[0].name : '', qty: 1, price: 0 }
                     ]
                 },
                 transactions: initial.transactions || [],
@@ -429,7 +447,7 @@
                             price: Number(this.coffees[0].purchase_price || 0)
                         }
                     ] : [
-                        { coffee_id: '', name: '', category_id: '', category_name: '', qty: 1, price: 0 }
+                        { coffee_id: '', name: '', category_id: (this.categories && this.categories.length) ? this.categories[0].id : '', category_name: (this.categories && this.categories.length) ? this.categories[0].name : '', qty: 1, price: 0 }
                     ];
                     this.showFormModal = true;
                 },
@@ -441,18 +459,30 @@
                     if (row.coffee_id === 'manual' || row.coffee_id === '') {
                         if (row.coffee_id === '') {
                             row.name = '';
-                            row.category_id = '';
-                            row.category_name = '';
+                            row.category_id = (this.categories && this.categories.length) ? this.categories[0].id : '';
+                            row.category_name = (this.categories && this.categories.length) ? this.categories[0].name : '';
                             row.price = 0;
+                            row.edit_category = false;
+                        } else {
+                            row.edit_category = true;
                         }
                     } else {
                         const c = this.coffees.find(x => String(x.id) === String(row.coffee_id));
                         if (c) {
                             row.name = c.name;
-                            row.category_id = c.category_id;
+                            row.category_id = c.category_id || '';
                             row.category_name = (c.category && c.category.name) ? c.category.name : '';
                             row.price = Number(c.purchase_price || 0);
+                            row.edit_category = !c.category_id;
                         }
+                    }
+                },
+                onExistingCoffeeCategoryChange(row) {
+                    if (row.category_id !== 'new') {
+                        const cat = this.categories.find(x => String(x.id) === String(row.category_id));
+                        row.category_name = cat ? cat.name : '';
+                    } else {
+                        row.category_name = '';
                     }
                 },
                 onSupplierChange() {
@@ -464,7 +494,15 @@
                     }
                 },
                 addCoffeeRow() {
-                    this.formData.items.push({ coffee_id: '', name: '', category_id: '', category_name: '', qty: 1, price: 0 });
+                    this.formData.items.push({
+                        coffee_id: '',
+                        name: '',
+                        category_id: (this.categories && this.categories.length) ? this.categories[0].id : '',
+                        category_name: (this.categories && this.categories.length) ? this.categories[0].name : '',
+                        qty: 1,
+                        price: 0,
+                        edit_category: false
+                    });
                 },
                 removeCoffeeRow(index) {
                     if (this.formData.items.length > 1) {
@@ -480,10 +518,12 @@
                 async saveTransaction() {
                     const items = this.formData.items.map(row => {
                         const manual = row.coffee_id === 'manual' || row.coffee_id === '';
+                        const isNewCat = row.category_id === 'new';
                         return {
                             coffee_id: (!manual && row.coffee_id) ? row.coffee_id : null,
-                            name: manual ? row.name : row.name,
-                            category_id: manual ? (row.category_id || null) : (row.category_id || null),
+                            name: row.name,
+                            category_id: (!isNewCat && row.category_id) ? row.category_id : null,
+                            category_name: isNewCat ? row.category_name : (row.category_name || null),
                             qty: Number(row.qty) || 0,
                             price: Number(row.price) || 0,
                         };
@@ -522,6 +562,8 @@
 
                         const data = await res.json();
                         this.transactions.unshift(data.transaction);
+                        if (data.coffees) this.coffees = data.coffees;
+                        if (data.categories) this.categories = data.categories;
                         this.showFormModal = false;
                         this.showToast(data.message, 'success');
                     } catch (e) {
