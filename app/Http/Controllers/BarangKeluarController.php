@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Coffee;
+use App\Models\Item;
 use App\Models\OutgoingGood;
 use App\Models\OutgoingGoodItem;
 use Illuminate\Http\Request;
@@ -143,9 +144,16 @@ class BarangKeluarController extends Controller
                     'subtotal' => $row['subtotal'],
                 ]);
 
-                // Kurangi stok kopi secara otomatis
+                // Kurangi stok kopi (master data kopi) secara otomatis
                 if ($coffee) {
                     $coffee->decrement('stock', (float) $row['qty']);
+                }
+
+                // Kurangi stok gudang (Item) agar selalu sinkron dengan transaksi keluar
+                $itemName = ! empty($row['name']) ? $row['name'] : ($coffee?->name ?? 'Item Tanpa Nama');
+                $gudangItem = Item::where('item_name', $itemName)->first();
+                if ($gudangItem) {
+                    $gudangItem->decrement('stock_kg', (float) $row['qty']);
                 }
             }
 
@@ -243,13 +251,19 @@ class BarangKeluarController extends Controller
         $validated['total_price'] = collect($validated['items'])->sum(fn ($i) => (float) $i['subtotal']);
 
         DB::transaction(function () use ($barang_keluar, $validated) {
-            // Kembalikan stok lama
+            // Kembalikan stok lama (master kopi + gudang)
             foreach ($barang_keluar->items as $oldItem) {
                 if ($oldItem->coffee_id) {
                     $coffee = Coffee::find($oldItem->coffee_id);
                     if ($coffee) {
                         $coffee->increment('stock', (float) $oldItem->qty);
                     }
+                }
+
+                $oldItemName = ! empty($oldItem->name) ? $oldItem->name : ($oldItem->coffee?->name ?? 'Item Tanpa Nama');
+                $oldGudangItem = Item::where('item_name', $oldItemName)->first();
+                if ($oldGudangItem) {
+                    $oldGudangItem->increment('stock_kg', (float) $oldItem->qty);
                 }
             }
 
@@ -287,6 +301,12 @@ class BarangKeluarController extends Controller
                 if ($coffee) {
                     $coffee->decrement('stock', (float) $row['qty']);
                 }
+
+                $itemName = ! empty($row['name']) ? $row['name'] : ($coffee?->name ?? 'Item Tanpa Nama');
+                $gudangItem = Item::where('item_name', $itemName)->first();
+                if ($gudangItem) {
+                    $gudangItem->decrement('stock_kg', (float) $row['qty']);
+                }
             }
         });
 
@@ -323,13 +343,19 @@ class BarangKeluarController extends Controller
     public function destroy(OutgoingGood $barang_keluar)
     {
         DB::transaction(function () use ($barang_keluar) {
-            // Kembalikan stok kopi
+            // Kembalikan stok kopi (master kopi + gudang)
             foreach ($barang_keluar->items as $item) {
                 if ($item->coffee_id) {
                     $coffee = Coffee::find($item->coffee_id);
                     if ($coffee) {
                         $coffee->increment('stock', (float) $item->qty);
                     }
+                }
+
+                $itemName = ! empty($item->name) ? $item->name : ($item->coffee?->name ?? 'Item Tanpa Nama');
+                $gudangItem = Item::where('item_name', $itemName)->first();
+                if ($gudangItem) {
+                    $gudangItem->increment('stock_kg', (float) $item->qty);
                 }
             }
             $barang_keluar->delete();
